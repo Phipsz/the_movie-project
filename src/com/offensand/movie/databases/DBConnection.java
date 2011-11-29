@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -611,11 +612,15 @@ public final class DBConnection {
         dbConnectionInstance);
   }
 
+  public static DBConnection getInstance() {
+    return dbConnectionInstance;
+  }
+
   public static enum time {
     MORNING, MIDDAY, EVENING, NIGHT, DEFAULT
   };
 
-  private static Connection   dbConnection;
+  private Connection          dbConnection;
   private static DBConnection dbConnectionInstance = new DBConnection();
   private static Properties   dbProperties;
   private static boolean      isConnected;
@@ -635,5 +640,62 @@ public final class DBConnection {
 
   public Connection getConnection() {
     return dbConnection;
+  }
+
+  private static boolean executeQuery(String query) {
+    Statement statement;
+    try {
+      statement = dbConnectionInstance.dbConnection.createStatement();
+      statement.execute(query);
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
+  }
+
+  public static boolean saveRelation(Requisite requisite, Item item) {
+    String query = "INSERT INTO " + dbReqItem
+        + "(IDRequisite, IDItem) VALUES (" + requisite.getID() + ", "
+        + item.getID() + ")";
+    return executeQuery(query);
+  }
+
+  public static boolean saveRelation(Item item, Person person) {
+    String query = "INSERT INTO " + dbItemChar
+        + "(IDItem, IDCharacter) VALUES (" + item.getID() + ", "
+        + person.getID() + ")";
+    return executeQuery(query);
+  }
+
+  public static boolean saveRelation(Scene scene, Set set) {
+    String query = "INSERT INTO " + dbSceneSet + "(IDScene, IDSet) VALUES ("
+        + scene.getID() + ", " + set.getID() + ")";
+    return executeQuery(query);
+  }
+
+  public static boolean saveRelation(Set set, Item item) {
+    String query = "INSERT INTO " + dbSetItem + "(IDSet, IDItem) VALUES ("
+        + set.getID() + ", " + item.getID() + ")";
+    return executeQuery(query);
+  }
+
+  public static boolean saveRelation(Set set, Person person) {
+    String query = "INSERT INTO " + dbSetChar + "(IDSet, IDCharacter) VALUES ("
+        + set.getID() + ", " + person.getID() + ")";
+    return executeQuery(query);
+  }
+
+  public static boolean saveRelation(Actor actor, Person person) {
+    String query = "INSERT INTO " + dbActorChar
+        + "(IDActor, IDCharacter) VALUES (" + actor.getID() + ", "
+        + person.getID() + ")";
+    return executeQuery(query);
+  }
+
+  public static boolean saveRelation(Set set, Location location) {
+    String query = "INSERT INTO " + dbSetLoc + "(IDSet, IDLocation) VALUES ("
+        + set.getID() + ", " + location.getID() + ")";
+    return executeQuery(query);
   }
 }

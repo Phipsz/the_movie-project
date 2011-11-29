@@ -18,22 +18,20 @@ public class Requisite {
   private String          name;
   private String          description;
   private Vector<Picture> images;
-  private int             ownerID;
-  private String          ownerName;
+  private Actor           owner;
 
   public Requisite(String name, String description, Vector<Picture> images,
-      int ownerID, String ownerName) {
-    this(- 1, name, description, images, ownerID, ownerName);
+      int ownerID, Actor owner) {
+    this(- 1, name, description, images, owner);
   }
 
   protected Requisite(int ID, String name, String description,
-      Vector<Picture> images, int ownerID, String ownerName) {
+      Vector<Picture> images, Actor owner) {
     this.ID = ID;
     this.name = name;
     this.description = description;
     this.images = images;
-    this.ownerID = ownerID;
-    this.ownerName = ownerName;
+    this.owner = owner;
   }
 
   public int getID() {
@@ -68,20 +66,12 @@ public class Requisite {
     this.images = images;
   }
 
-  public int getOwnerID() {
-    return ownerID;
+  public Actor getOwner() {
+    return owner;
   }
 
-  public void setOwnerID(int ownerID) {
-    this.ownerID = ownerID;
-  }
-
-  public String getOwnerName() {
-    return ownerName;
-  }
-
-  public void setOwnerName(String ownerName) {
-    this.ownerName = ownerName;
+  public void setOwner(Actor owner) {
+    this.owner = owner;
   }
 
   public static Vector<Requisite> getRequisites(String[] filterDescriptions,
@@ -146,7 +136,7 @@ public class Requisite {
         String name = resultReq.getString("Name");
         String description = resultReq.getString("Description");
         int ownerID = resultReq.getInt("OwnerID");
-        String ownerName = resultReq.getString("ownerS");
+        Actor owner = Actor.getActor(ownerID);
         Vector<Picture> images = new Vector<Picture>(0);
         statementPic.setInt(1, ID);
         ResultSet resultPic = statementPic.executeQuery();
@@ -158,16 +148,48 @@ public class Requisite {
           } catch (IOException e) {
           }
           String descrImg = resultPic.getString("Description");
-          Picture pic = new Picture(ID, descrImg, img);
+          Picture pic = new Picture(ID, descrImg, img, true);
           images.add(pic);
         }
-        retVal.add(new Requisite(ID, name, description, images, ownerID,
-            ownerName));
+        retVal.add(new Requisite(ID, name, description, images, owner));
       }
     } catch (SQLException e) {
       e.printStackTrace();
     }
     // TODO control method
     return retVal;
+  }
+
+  public boolean saveToDatabase() {
+    String query;
+    if (ID <= 0) {
+      query = "INSERT INTO " + DBConnection.dbReq
+          + " (Name, Description, Owner) " + " VALUES (?, ?, ?)";
+    } else {
+      query = "UPDATE " + DBConnection.dbReq
+          + " SET Name=?, Description=?, Owner=? WHERE ID=" + ID;
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, name);
+      statement.setString(2, description);
+      statement.setInt(3, owner.getID());
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+      for (Picture pic : images) {
+        if (! pic.saveToDatabase())
+          return false;
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
   }
 }

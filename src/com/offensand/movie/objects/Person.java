@@ -65,6 +65,9 @@ public class Person {
       Actor[] filterActor, Scene[] filterScene, Set[] filterSet,
       DBConnection dbConnection) {
     Vector<Person> retVal = new Vector<Person>(0);
+    if (! dbConnection.isConnected()) {
+      dbConnection.connect();
+    }
     String query = "SELECT * FROM " + DBConnection.dbChar;
     boolean hasNameFilter = (filterName != null ) && (filterName.length > 0 );
     boolean hasActorFilter = (filterActor != null ) && (filterActor.length > 0 );
@@ -143,5 +146,33 @@ public class Person {
     }
     // TODO control Method
     return retVal;
+  }
+
+  public boolean saveToDatabase() {
+    String query;
+    if (ID <= 0) {
+      query = "INSERT INTO " + DBConnection.dbChar + " (Name, Description) "
+          + " VALUES (?, ?)";
+    } else {
+      query = "UPDATE " + DBConnection.dbChar + " SET Name=?, Description=? "
+          + " WHERE ID=" + ID;
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, name);
+      statement.setString(2, description);
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+      return DBConnection.saveRelation(actor, this);
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
   }
 }

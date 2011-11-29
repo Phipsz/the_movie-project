@@ -92,6 +92,9 @@ public class Scene implements Comparable<Scene> {
   public static Vector<Scene> getScenes(String[] filterName, TIME[] filterTime,
       Person[] filterCharacters, DBConnection dbConnection) {
     Vector<Scene> retVal = new Vector<Scene>(0);
+    if (! dbConnection.isConnected()) {
+      dbConnection.connect();
+    }
     String query = "SELECT * FROM " + DBConnection.dbScene;
     boolean hasNameFilter = (filterName != null ) && (filterName.length > 0 );
     boolean hasTimeFilter = (filterTime != null ) && (filterTime.length > 0 );
@@ -151,5 +154,33 @@ public class Scene implements Comparable<Scene> {
     Collections.sort(retVal);
     // TODO control Method
     return retVal;
+  }
+
+  public boolean saveToDatabase() {
+    String query;
+    if (ID <= 0) {
+      query = "INSERT INTO " + DBConnection.dbScene
+          + " (Name, Time, Position) " + "VALUES (?, ?, ?)";
+    } else {
+      query = "UPDATE " + DBConnection.dbScene
+          + " SET Name=?, Time=?, Position=?";
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, name);
+      statement.setInt(2, time.ordinal());
+      statement.setInt(3, position);
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return false;
   }
 }

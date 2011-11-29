@@ -16,23 +16,27 @@ import com.offensand.movie.objects.Scene.TIME;
 public class Set {
 
   private int            ID;
+  private String         name;
   private Scene          partOf;
+  private String         action;
   private Location       location;
   private Vector<Item>   items;
   private Vector<Person> characters;
 
-  public Set(Scene partOf, Location location, Vector<Item> items,
+  public Set(String name, Scene partOf, Location location, Vector<Item> items,
       Vector<Person> characters) {
-    this(- 1, partOf, location, items, characters);
+    this(- 1, name, partOf, location, items, characters);
   }
 
-  protected Set(int ID, Scene partOf, Location location, Vector<Item> items,
-      Vector<Person> characters) {
+  protected Set(int ID, String name, Scene partOf, Location location,
+      Vector<Item> items, Vector<Person> characters) {
     this.ID = ID;
+    this.name = name;
     this.partOf = partOf;
     this.location = location;
     this.items = items;
     this.characters = characters;
+    action = "";
   }
 
   public int getID() {
@@ -75,10 +79,21 @@ public class Set {
     this.characters = characters;
   }
 
+  public void setAction(String action) {
+    this.action = action;
+  }
+
+  public String getAction() {
+    return action;
+  }
+
   public static Vector<Set> getSets(Scene[] filterScene,
       Location[] filterLocation, Person[] filterCharacters,
       DBConnection dbConnection) {
     Vector<Set> retVal = new Vector<Set>(0);
+    if (! dbConnection.isConnected()) {
+      dbConnection.connect();
+    }
     String query = "SELECT * FROM " + DBConnection.dbSet;
     boolean hasSceneFilter = (filterScene != null ) && (filterScene.length > 0 );
     boolean hasLocationFilter = (filterLocation != null )
@@ -124,6 +139,7 @@ public class Set {
       ResultSet result = statement.executeQuery();
       while (result.next()) {
         int ID = result.getInt("ID");
+        String name = result.getString("Name");
         Scene partOf = null;
         String query2 = "SELECT * FROM " + DBConnection.dbScene
             + " WHERE ID=(SELECT IDScene FROM " + DBConnection.dbSceneSet
@@ -173,23 +189,67 @@ public class Set {
               picture = ImageIO.read(url);
             } catch (IOException ioex) {
             }
-            Picture pic = new Picture(IDLocation, descriptionPic, picture);
+            Picture pic = new Picture(IDLocation, descriptionPic, picture,
+                false);
             images.add(pic);
           }
           location = new Location(IDLocation, village, description, usability,
               coordinates, images);
         }
-        Set[] dummy = new Set[] { new Set(ID, partOf, location, null, null) };
+        Set[] dummy = new Set[] { new Set(ID, name, partOf, location, null,
+            null) };
         Vector<Item> items = Item.getItems(null, null, null, null, dummy,
             dbConnection);
         Vector<Person> characters = Person.getPersons(null, null, null, dummy,
             dbConnection);
-        retVal.add(new Set(ID, partOf, location, items, characters));
+        retVal.add(new Set(ID, name, partOf, location, items, characters));
       }
     } catch (SQLException e) {
       e.printStackTrace();
     }
     // TODO control Method
     return retVal;
+  }
+
+  public boolean saveToDatabase() {
+    String query;
+    if (ID <= 0) {
+      query = "INSERT INTO " + DBConnection.dbSet + " (Name, Action) "
+          + "VALUES (?, ?)";
+    } else {
+      query = "UPDATE " + DBConnection.dbSet
+          + " SET Name=?, Action=? WHERE ID=" + ID;
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, name);
+      statement.setString(2, action);
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+      if (! partOf.saveToDatabase() && DBConnection.saveRelation(partOf, this))
+        return false;
+      if (! (location.saveToDatabase() && DBConnection.saveRelation(this,
+          location) ))
+        return false;
+      for (Item item : items) {
+        if (! (item.saveToDatabase() && DBConnection.saveRelation(this, item) ))
+          return false;
+      }
+      for (Person person : characters) {
+        if (! (person.saveToDatabase() && DBConnection.saveRelation(this,
+            person) ))
+          return false;
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
   }
 }

@@ -11,8 +11,7 @@ public class DBRequisitesItems {
     String sCreateQuery = "CREATE TABLE movie__requisites ("
         + " ID           INTEGER NOT NULL AUTOINCREMENT, "
         + " Name         VARCHAR(50), " + " Description  LONGVARCHAR, "
-        + " OwnerS       VARCHAR, " + " OwnerID      INTEGER, "
-        + " PRIMARY KEY(ID))";
+        + " OwnerID      INTEGER, " + " PRIMARY KEY(ID))";
     try {
       statement = dbConnection.prepareStatement(sCreateQuery);
       statement.execute();

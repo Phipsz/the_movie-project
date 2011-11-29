@@ -15,6 +15,36 @@ public class Actor {
   private String phone;
   private String cellphone;
 
+  public boolean saveToDatabase() {
+    String query = "";
+    if (ID <= 0) {
+      query += "INSERT INTO " + DBConnection.dbActor
+          + " (Name, Mail, Phone, Cellphone) VALUES " + "(?, ?, ?, ?)";
+    } else {
+      query += "UPDATE " + DBConnection.dbActor
+          + " SET Name=?, Mail=?, Phone=?, Cellphone=? " + " WHERE ID=" + ID;
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, name);
+      statement.setString(2, mail);
+      statement.setString(3, phone);
+      statement.setString(4, cellphone);
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
+  }
+
   public static Vector<Actor> getActors(Person[] filterCharacter,
       String[] filterNames, DBConnection dbConnection) {
     Vector<Actor> retVal = new Vector<Actor>(0);
@@ -116,5 +146,25 @@ public class Actor {
 
   public void setID(int iD) {
     ID = iD;
+  }
+
+  public static Actor getActor(int ID) {
+    String query = "SELECT Name, Mail, Phone, Cellphone FROM "
+        + DBConnection.dbActor + " WHERE ID=" + ID;
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      ResultSet set = statement.executeQuery();
+      if ((set != null ) && set.next()) {
+        String name = set.getString("Name");
+        String mail = set.getString("Mail");
+        String phone = set.getString("Phone");
+        String cellphone = set.getString("Cellphone");
+        return new Actor(ID, name, mail, phone, cellphone);
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 }

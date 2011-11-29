@@ -61,6 +61,9 @@ public class Item {
       Requisite[] filterRequisites, Person[] filterIntimeOwner,
       Scene[] filterScene, Set[] filterSet, DBConnection dbConnection) {
     Vector<Item> retVal = new Vector<Item>(0);
+    if (! dbConnection.isConnected()) {
+      dbConnection.connect();
+    }
     String query = "SELECT * FROM " + DBConnection.dbItem;
     boolean hasNameFilter = (filterName != null ) && (filterName.length > 0 );
     boolean hasRequisiteFilter = (filterRequisites != null )
@@ -162,5 +165,35 @@ public class Item {
     }
     // TODO control method
     return retVal;
+  }
+
+  public boolean saveToDatabase() {
+    String query;
+    if (ID <= 0) {
+      query = "INSERT INTO " + DBConnection.dbItem + "(Name, Description)"
+          + " VALUES (?, ?)";
+    } else {
+      query = "UPDATE " + DBConnection.dbItem
+          + " SET Name=?, Description=? WHERE ID=" + ID;
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, name);
+      statement.setString(2, "");
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+      return requisite.saveToDatabase() && intimeOwner.saveToDatabase()
+          && DBConnection.saveRelation(requisite, this)
+          && DBConnection.saveRelation(this, intimeOwner);
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
   }
 }

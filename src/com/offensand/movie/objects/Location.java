@@ -87,6 +87,9 @@ public class Location {
   public static Vector<Location> getLocations(String[] filterDescriptions,
       Location start, int radius, DBConnection dbConnection) {
     Vector<Location> retVal = new Vector<Location>(0);
+    if (! dbConnection.isConnected()) {
+      dbConnection.connect();
+    }
     String query = "SELECT * FROM " + DBConnection.dbLoc;
     boolean hasDescriptionFilter = (filterDescriptions != null )
         && (filterDescriptions.length > 0 );
@@ -115,16 +118,13 @@ public class Location {
       if (hasDescriptionFilter) {
         query += " AND ";
       }
-      // TODO
       query += "ID IN (SELECT ID FROM " + DBConnection.dbLoc + " WHERE ";
-      /*
-       * cast longitude/latitude to decimal, then to double. then compute sqrt
-       * of sum of squares and compare to radius and startlocation
-       */
-      // TODO
+      query += "SQRT((POW(CAST(CAST(Longitude AS DECIMAL) AS DOUBLE),2)-"
+          + start.getCoordinates().longitude
+          + ")+(POW(CAST(CAST(Latitude AS DECIMAL) AS DOUBLE),2)-"
+          + start.getCoordinates().latitude + "))<" + radius;
       query += ")";
     }
-    // TODO
     try {
       PreparedStatement statement = dbConnection.getConnection()
           .prepareStatement(query);
@@ -152,7 +152,7 @@ public class Location {
             picture = ImageIO.read(url);
           } catch (IOException ioex) {
           }
-          Picture pic = new Picture(ID, descriptionPic, picture);
+          Picture pic = new Picture(ID, descriptionPic, picture, false);
           images.add(pic);
         }
         retVal.add(new Location(ID, village, description, usability,
@@ -163,5 +163,42 @@ public class Location {
     }
     // TODO control Method
     return retVal;
+  }
+
+  public boolean saveToDatabase() {
+    String query;
+    if (ID <= 0) {
+      query = "INSERT INTO " + DBConnection.dbLoc
+          + " (Name, Description, Usability, Longitude, Latitude) "
+          + " VALUES (?, ?, ?, ?, ?)";
+    } else {
+      query = "UPDATE " + DBConnection.dbLoc
+          + " SET Name=?, Description=?, Usability=?, Longitude=?, Latitude=? "
+          + " WHERE ID=" + ID;
+    }
+    try {
+      PreparedStatement statement = DBConnection.getInstance().getConnection()
+          .prepareStatement(query);
+      statement.setString(1, village);
+      statement.setString(2, description);
+      statement.setString(3, usability);
+      statement.setString(4, coordinates.longitude);
+      statement.setString(5, coordinates.latitude);
+      statement.executeUpdate();
+      if (ID <= 0) {
+        ResultSet set = statement.getGeneratedKeys();
+        if ((set != null ) && set.next()) {
+          ID = set.getInt("ID");
+        }
+      }
+      for (Picture pic : images) {
+        if (! pic.saveToDatabase())
+          return false;
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
+    return true;
   }
 }
