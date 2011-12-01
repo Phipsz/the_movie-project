@@ -30,6 +30,7 @@ public class Picture {
     this.description = description;
     this.picture = picture;
     isRequisitePicture = true;
+    saveToDatabase();
   }
 
   public Picture(Location loc, String src, String description) {
@@ -44,6 +45,7 @@ public class Picture {
     this.description = description;
     this.picture = picture;
     isRequisitePicture = false;
+    saveToDatabase();
   }
 
   protected Picture(int ID, String description, BufferedImage picture,

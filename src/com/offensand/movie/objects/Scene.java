@@ -3,6 +3,7 @@ package com.offensand.movie.objects;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collections;
 import java.util.Vector;
 
@@ -11,7 +12,7 @@ import com.offensand.movie.databases.DBConnection;
 public class Scene implements Comparable<Scene> {
 
   public enum TIME {
-    MORNING, MIDDAY, AFTERNOON, EVENING, NIGHT
+    MORNING, MIDDAY, AFTERNOON, EVENING, NIGHT, DEFAULT
   };
 
   private int            ID;
@@ -34,6 +35,7 @@ public class Scene implements Comparable<Scene> {
   public Scene(String name, TIME time, int position, Vector<Item> items,
       Vector<Person> characters) {
     this(- 1, name, time, position, items, characters);
+    saveToDatabase();
   }
 
   public int getID() {
@@ -167,20 +169,31 @@ public class Scene implements Comparable<Scene> {
     }
     try {
       PreparedStatement statement = DBConnection.getInstance().getConnection()
-          .prepareStatement(query);
+          .prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
       statement.setString(1, name);
-      statement.setInt(2, time.ordinal());
+      statement.setString(2, time.name());
       statement.setInt(3, position);
       statement.executeUpdate();
       if (ID <= 0) {
         ResultSet set = statement.getGeneratedKeys();
         if ((set != null ) && set.next()) {
-          ID = set.getInt("ID");
+          ID = set.getInt(1);
         }
       }
     } catch (SQLException e) {
       e.printStackTrace();
     }
     return false;
+  }
+
+  @Override
+  public String toString() {
+    String retVal = "Scene[ID=" + ID;
+    retVal += ", Name=" + name;
+    retVal += ", Position=" + position;
+    retVal += ", time=" + time.name();
+    retVal += ", uses " + items.size() + " items";
+    retVal += " and " + characters.size() + " Characters";
+    return retVal + "]";
   }
 }

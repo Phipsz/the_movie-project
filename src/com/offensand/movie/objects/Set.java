@@ -6,6 +6,7 @@ import java.net.URL;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -26,6 +27,7 @@ public class Set {
   public Set(String name, Scene partOf, Location location, Vector<Item> items,
       Vector<Person> characters) {
     this(- 1, name, partOf, location, items, characters);
+    saveToDatabase();
   }
 
   protected Set(int ID, String name, Scene partOf, Location location,
@@ -222,14 +224,14 @@ public class Set {
     }
     try {
       PreparedStatement statement = DBConnection.getInstance().getConnection()
-          .prepareStatement(query);
+          .prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
       statement.setString(1, name);
       statement.setString(2, action);
       statement.executeUpdate();
       if (ID <= 0) {
         ResultSet set = statement.getGeneratedKeys();
         if ((set != null ) && set.next()) {
-          ID = set.getInt("ID");
+          ID = set.getInt(1);
         }
       }
       if (! partOf.saveToDatabase() && DBConnection.saveRelation(partOf, this))
@@ -251,5 +253,18 @@ public class Set {
       return false;
     }
     return true;
+  }
+
+  @Override
+  public String toString() {
+    String retVal = "Set[ID=" + ID;
+    retVal += ", Name=" + name;
+    retVal += ", Action=" + action;
+    retVal += ", Part of Scene " + (partOf != null ? partOf.getName() : "none" );
+    retVal += ", Takes place at "
+        + (location != null ? location.getVillage() : "none" );
+    retVal += ", uses " + items.size() + " items";
+    retVal += " and " + characters.size() + " Characters";
+    return retVal + "]";
   }
 }

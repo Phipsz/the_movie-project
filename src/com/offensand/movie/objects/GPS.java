@@ -9,4 +9,9 @@ public class GPS {
     this.longitude = longitude;
     this.latitude = latitude;
   }
+
+  @Override
+  public String toString() {
+    return "GPS[longitude=" + longitude + ", latitude=" + latitude + "]";
+  }
 }

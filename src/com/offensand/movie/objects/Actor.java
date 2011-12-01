@@ -3,6 +3,7 @@ package com.offensand.movie.objects;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Vector;
 
 import com.offensand.movie.databases.DBConnection;
@@ -26,7 +27,7 @@ public class Actor {
     }
     try {
       PreparedStatement statement = DBConnection.getInstance().getConnection()
-          .prepareStatement(query);
+          .prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
       statement.setString(1, name);
       statement.setString(2, mail);
       statement.setString(3, phone);
@@ -35,7 +36,7 @@ public class Actor {
       if (ID <= 0) {
         ResultSet set = statement.getGeneratedKeys();
         if ((set != null ) && set.next()) {
-          ID = set.getInt("ID");
+          ID = set.getInt(1);
         }
       }
     } catch (SQLException e) {
@@ -97,6 +98,7 @@ public class Actor {
 
   public Actor(String name, String mail, String phone, String cellphone) {
     this(- 1, name, mail, phone, cellphone);
+    saveToDatabase();
   }
 
   protected Actor(int ID, String name, String mail, String phone,
@@ -166,5 +168,15 @@ public class Actor {
       e.printStackTrace();
     }
     return null;
+  }
+
+  @Override
+  public String toString() {
+    String retVal = "Actor[ID=" + ID;
+    retVal += ", Name=" + name;
+    retVal += ", Mail=" + mail;
+    retVal += ", Phone=" + phone;
+    retVal += ", Cellphone" + cellphone;
+    return retVal + "]";
   }
 }

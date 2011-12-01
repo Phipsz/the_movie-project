@@ -3,6 +3,7 @@ package com.offensand.movie.objects;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Vector;
 
 import com.offensand.movie.databases.DBConnection;
@@ -23,10 +24,12 @@ public class Person {
 
   public Person(String name, String description, Actor actor) {
     this(- 1, name, description, actor);
+    saveToDatabase();
   }
 
   public Person(String name, Actor actor) {
     this(- 1, name, "", actor);
+    saveToDatabase();
   }
 
   public int getID() {
@@ -77,9 +80,9 @@ public class Person {
       query += " WHERE ";
     }
     if (hasNameFilter) {
-      query += "( Name LIKE '%" + filterName[0] + "%'";
+      query += " ( Name LIKE '%" + filterName[0] + "%'";
       for (int i = 1; i < filterName.length; ++i) {
-        query += "OR Name LIKE '%" + filterName[i] + "%'";
+        query += " OR Name LIKE '%" + filterName[i] + "%'";
       }
       query += ")";
     }
@@ -87,7 +90,7 @@ public class Person {
       if (hasNameFilter) {
         query += " AND ";
       }
-      query += "ID IN (SELECT IDCharacter FROM " + DBConnection.dbActorChar
+      query += " ID IN (SELECT IDCharacter FROM " + DBConnection.dbActorChar
           + " WHERE IDActor IN (" + filterActor[0].getID();
       for (int i = 1; i < filterActor.length; ++i) {
         query += ", " + filterActor[i].getID();
@@ -98,9 +101,9 @@ public class Person {
       if (hasNameFilter || hasActorFilter) {
         query += " AND ";
       }
-      query += "ID IN (SELECT IDCharacter FROM " + DBConnection.dbSetChar
-          + "WHERE IDSet IN(SELECT IDSet FROM " + DBConnection.dbSceneSet
-          + "WHERE IDScene IN (" + filterScene[0].getID();
+      query += " ID IN (SELECT IDCharacter FROM " + DBConnection.dbSetChar
+          + " WHERE IDSet IN(SELECT IDSet FROM " + DBConnection.dbSceneSet
+          + " WHERE IDScene IN (" + filterScene[0].getID();
       for (int i = 1; i < filterScene.length; ++i) {
         query += ", " + filterScene[1].getID();
       }
@@ -110,8 +113,8 @@ public class Person {
       if (hasNameFilter || hasActorFilter || hasSceneFilter) {
         query += " AND ";
       }
-      query += "ID IN (SELECT IDCharacter FROM " + DBConnection.dbSetChar
-          + "WHERE IDSet IN(" + filterSet[0].getID();
+      query += " ID IN (SELECT IDCharacter FROM " + DBConnection.dbSetChar
+          + " WHERE IDSet IN (" + filterSet[0].getID();
       for (int i = 1; i < filterSet.length; ++i) {
         query += ", " + filterSet[1].getID();
       }
@@ -159,20 +162,39 @@ public class Person {
     }
     try {
       PreparedStatement statement = DBConnection.getInstance().getConnection()
-          .prepareStatement(query);
+          .prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
       statement.setString(1, name);
       statement.setString(2, description);
       statement.executeUpdate();
       if (ID <= 0) {
         ResultSet set = statement.getGeneratedKeys();
         if ((set != null ) && set.next()) {
-          ID = set.getInt("ID");
+          ID = set.getInt(1);
         }
       }
-      return DBConnection.saveRelation(actor, this);
+      if (! actor.saveToDatabase()) {
+        System.err.println("an error occured saving " + actor.toString());
+        return false;
+      }
+      if (! DBConnection.saveRelation(actor, this)) {
+        System.err.println("an error occured saving relation between");
+        System.err.println(actor.toString() + " and");
+        System.err.println(toString());
+        return false;
+      }
     } catch (SQLException e) {
       e.printStackTrace();
       return false;
     }
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    String retVal = "Person[ID=" + ID;
+    retVal += ", Name=" + name;
+    retVal += ", Description=" + description;
+    retVal += ", Actor=" + (actor != null ? actor.getName() : "none" );
+    return retVal + "]";
   }
 }

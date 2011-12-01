@@ -7,10 +7,12 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.Vector;
 
+import com.offensand.movie.HelperClass;
 import com.offensand.movie.objects.Actor;
 import com.offensand.movie.objects.Item;
 import com.offensand.movie.objects.Location;
@@ -30,7 +32,13 @@ public final class DBConnection {
       String driverName = dbProperties.getProperty("derby.driver");
       loadDatabaseDriver(driverName);
       if (! dbExists()) {
-        createDatabase();
+        if (createDatabase()) {
+          System.out.print("Creating Database has ");
+          System.out.println("been successful");
+        } else {
+          System.out.print("Creating Database has ");
+          System.out.println("failed");
+        }
       }
     } else {
       // put here code for connectivity to online-database
@@ -57,7 +65,9 @@ public final class DBConnection {
 
   private void setDBSystemDir() {
     // decide on the db system directory
-    String systemDir = fileDirectory;
+    System.out.println(HelperClass.mainDirectory);
+    System.out.println(HelperClass.fileDirectory);
+    String systemDir = HelperClass.fileDirectory;
     System.setProperty("derby.system.home", systemDir);
     // create the db system directory
     File fileSystemDir = new File(systemDir);
@@ -76,7 +86,8 @@ public final class DBConnection {
   private static Properties loadDBProperties() {
     FileReader dbPropReader = null;
     try {
-      dbPropReader = new FileReader(dataDirectory + "Configuration.properties");
+      dbPropReader = new FileReader(HelperClass.dataDirectory
+          + "Configuration.properties");
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     }
@@ -106,6 +117,7 @@ public final class DBConnection {
       dbConnection = DriverManager.getConnection(dbUrl, dbProperties);
       bCreated = createTables(dbConnection);
     } catch (SQLException ex) {
+      ex.printStackTrace();
     }
     dbProperties.remove("create");
     return bCreated;
@@ -627,18 +639,18 @@ public final class DBConnection {
   private static String       dbName;
   public static final String  dbLoc                = "movie__locations",
       dbLocPic = "movie__location_pictures", dbReq = "movie__requisites",
-      dbReqPic = "movie__requisites_pictures",
+      dbReqPic = "movie__requisite_pictures",
       dbReqItem = "movie__requisites_items", dbActor = "movie__actors",
       dbActorChar = "movie__actors_characters", dbItem = "movie__items",
       dbItemChar = "movie__items_characters", dbSet = "movie__sets",
       dbSetLoc = "movie__sets_locations", dbSetItem = "movie__set_items",
       dbSetChar = "movie__set_characters", dbScene = "movie__scenes",
       dbSceneSet = "movie__scene_sets", dbChar = "movie__characters";
-  private static final String mainDirectory        = "" + File.separator,
-      fileDirectory = mainDirectory + "files" + File.separator,
-      dataDirectory = mainDirectory + "data" + File.separator;
 
   public Connection getConnection() {
+    if (! isConnected) {
+      connect();
+    }
     return dbConnection;
   }
 
@@ -648,8 +660,10 @@ public final class DBConnection {
       statement = dbConnectionInstance.dbConnection.createStatement();
       statement.execute(query);
     } catch (SQLException e) {
-      e.printStackTrace();
-      return false;
+      if (! (e instanceof SQLIntegrityConstraintViolationException )) {
+        e.printStackTrace();
+        return false;
+      }
     }
     return true;
   }

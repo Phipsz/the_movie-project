@@ -6,6 +6,7 @@ import java.net.URL;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -34,6 +35,7 @@ public class Location {
   public Location(String village, String description, String usability,
       GPS coordinates, Vector<Picture> images) {
     this(- 1, village, description, usability, coordinates, images);
+    saveToDatabase();
   }
 
   public int getID() {
@@ -178,7 +180,7 @@ public class Location {
     }
     try {
       PreparedStatement statement = DBConnection.getInstance().getConnection()
-          .prepareStatement(query);
+          .prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
       statement.setString(1, village);
       statement.setString(2, description);
       statement.setString(3, usability);
@@ -188,7 +190,7 @@ public class Location {
       if (ID <= 0) {
         ResultSet set = statement.getGeneratedKeys();
         if ((set != null ) && set.next()) {
-          ID = set.getInt("ID");
+          ID = set.getInt(1);
         }
       }
       for (Picture pic : images) {
@@ -200,5 +202,16 @@ public class Location {
       return false;
     }
     return true;
+  }
+
+  @Override
+  public String toString() {
+    String retVal = "Location[ID=" + ID;
+    retVal += ", Village=" + village;
+    retVal += ", Description=" + description;
+    retVal += ", Usability=" + usability;
+    retVal += ", GPS=" + coordinates.toString();
+    retVal += ", contains " + images.size() + " images";
+    return retVal + "]";
   }
 }

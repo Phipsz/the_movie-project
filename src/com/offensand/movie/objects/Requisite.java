@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -21,8 +22,9 @@ public class Requisite {
   private Actor           owner;
 
   public Requisite(String name, String description, Vector<Picture> images,
-      int ownerID, Actor owner) {
+      Actor owner) {
     this(- 1, name, description, images, owner);
+    saveToDatabase();
   }
 
   protected Requisite(int ID, String name, String description,
@@ -117,14 +119,15 @@ public class Requisite {
       if (hasDescrFilter || hasOwnerFilter) {
         query += " AND ";
       }
-      query += "ID IN SELECT IDRequisite FROM " + DBConnection.dbReqItem
+      query += "ID IN (SELECT IDRequisite FROM " + DBConnection.dbReqItem
           + " WHERE IDItem IN (" + filterItem[0].getID();
       for (int i = 1; i < filterItem.length; ++i) {
         query += ", " + filterItem[i].getID();
       }
-      query += ")";
+      query += "))";
     }
-    String queryPic = "SELECT * FROM " + DBConnection.dbReqPic + " WHERE ID=?";
+    String queryPic = "SELECT * FROM " + DBConnection.dbReqPic
+        + " WHERE IDRequisite=?";
     try {
       PreparedStatement statement = dbConnection.getConnection()
           .prepareStatement(query);
@@ -135,7 +138,7 @@ public class Requisite {
         int ID = resultReq.getInt("ID");
         String name = resultReq.getString("Name");
         String description = resultReq.getString("Description");
-        int ownerID = resultReq.getInt("OwnerID");
+        int ownerID = resultReq.getInt("Owner");
         Actor owner = Actor.getActor(ownerID);
         Vector<Picture> images = new Vector<Picture>(0);
         statementPic.setInt(1, ID);
@@ -171,7 +174,7 @@ public class Requisite {
     }
     try {
       PreparedStatement statement = DBConnection.getInstance().getConnection()
-          .prepareStatement(query);
+          .prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
       statement.setString(1, name);
       statement.setString(2, description);
       statement.setInt(3, owner.getID());
@@ -179,7 +182,7 @@ public class Requisite {
       if (ID <= 0) {
         ResultSet set = statement.getGeneratedKeys();
         if ((set != null ) && set.next()) {
-          ID = set.getInt("ID");
+          ID = set.getInt(1);
         }
       }
       for (Picture pic : images) {
@@ -191,5 +194,15 @@ public class Requisite {
       return false;
     }
     return true;
+  }
+
+  @Override
+  public String toString() {
+    String retVal = "Requisite[ID=" + ID;
+    retVal += ", Name=" + name;
+    retVal += ", Description=" + description;
+    retVal += ", Owner=" + (owner != null ? owner.getName() : "none" );
+    retVal += ", contains " + images.size() + " images";
+    return retVal + "]";
   }
 }
