@@ -163,7 +163,7 @@ public class Location {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    // TODO control Method
+    // TODO Philipp -- control Method
     return retVal;
   }
 

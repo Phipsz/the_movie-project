@@ -12,7 +12,10 @@ import java.sql.Statement;
 import java.util.Properties;
 import java.util.Vector;
 
+import javax.swing.JOptionPane;
+
 import com.offensand.movie.HelperClass;
+import com.offensand.movie.graphics.DialogUserPassword;
 import com.offensand.movie.objects.Actor;
 import com.offensand.movie.objects.Item;
 import com.offensand.movie.objects.Location;
@@ -24,29 +27,21 @@ import com.offensand.movie.objects.Scene.TIME;
 
 public final class DBConnection {
 
-  public DBConnection(boolean connectOnline) {
-    if (! connectOnline) {
-      dbName = "Database_Movie";
-      setDBSystemDir();
-      dbProperties = loadDBProperties();
-      String driverName = dbProperties.getProperty("derby.driver");
-      loadDatabaseDriver(driverName);
-      if (! dbExists()) {
-        if (createDatabase()) {
-          System.out.print("Creating Database has ");
-          System.out.println("been successful");
-        } else {
-          System.out.print("Creating Database has ");
-          System.out.println("failed");
-        }
-      }
-    } else {
-      // put here code for connectivity to online-database
-    }
-  }
-
   public DBConnection() {
-    this(false);
+    dbName = "Database_Movie";
+    setDBSystemDir();
+    dbProperties = loadDBProperties();
+    String driverName = dbProperties.getProperty("derby.driver");
+    loadDatabaseDriver(driverName);
+    if (! dbExists()) {
+      if (createDatabase()) {
+        System.out.print("Creating Database has ");
+        System.out.println("been successful");
+      } else {
+        System.out.print("Creating Database has ");
+        System.out.println("failed");
+      }
+    }
   }
 
   public boolean isConnected() {
@@ -711,5 +706,36 @@ public final class DBConnection {
     String query = "INSERT INTO " + dbSetLoc + "(IDSet, IDLocation) VALUES ("
         + set.getID() + ", " + location.getID() + ")";
     return executeQuery(query);
+  }
+
+  public static void synchronizeOnline() {
+    FileReader dbPropReader = null;
+    try {
+      dbPropReader = new FileReader(HelperClass.dataDirectory
+          + "onlineconnectivity.properties");
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+    Properties properties = new Properties();
+    try {
+      properties.load(dbPropReader);
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+    DialogUserPassword userdata = new DialogUserPassword(HelperClass
+        .getMainWindow());
+    userdata.setUser(properties.getProperty("user", ""));
+    userdata.setPassword(properties.getProperty("Password", ""));
+    if (! userdata.isCancelled()) {
+    } else {
+      JOptionPane.showMessageDialog(HelperClass.getMainWindow(),
+          "Synchronization was cancelled by User", "Error",
+          JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    properties.setProperty("user", userdata.getUser());
+    properties.setProperty("password", userdata.getPassword());
+    userdata = null;
+    // TODO Philipp -- finish synchronization
   }
 }

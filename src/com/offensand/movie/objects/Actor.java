@@ -92,7 +92,7 @@ public class Actor {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    // TODO control method
+    // TODO Philipp -- control method
     return retVal;
   }
 

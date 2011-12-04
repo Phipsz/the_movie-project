@@ -1,5 +1,6 @@
 package com.offensand.movie;
 
+import java.awt.Window;
 import java.io.File;
 
 public class HelperClass {
@@ -21,5 +22,10 @@ public class HelperClass {
     dataFolder.mkdirs();
     fileFolder.mkdir();
     new TestClass();
+  }
+
+  public static Window getMainWindow() {
+    // TODO Theo -- returns his main Window :)
+    return null;
   }
 }
