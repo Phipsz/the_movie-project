@@ -57,6 +57,8 @@ public class DialogUserPassword extends JDialog implements ActionListener {
   public String getUser() {
     if ((tfUser.getText() == null ) || tfUser.getText().equals("")) {
       requirePassword();
+    } else {
+      cancelled = false;
     }
     return tfUser.getText();
   }
@@ -65,6 +67,8 @@ public class DialogUserPassword extends JDialog implements ActionListener {
     if ((tfPassword.getPassword() == null )
         || String.copyValueOf(tfPassword.getPassword()).equals("")) {
       requirePassword();
+    } else {
+      cancelled = false;
     }
     return String.copyValueOf(tfPassword.getPassword());
   }

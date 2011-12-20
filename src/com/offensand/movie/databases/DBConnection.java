@@ -1,9 +1,15 @@
 package com.offensand.movie.databases;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -79,19 +85,19 @@ public final class DBConnection {
   }
 
   private static Properties loadDBProperties() {
-    FileReader dbPropReader = null;
-    try {
-      dbPropReader = new FileReader(HelperClass.dataDirectory
-          + "Configuration.properties");
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
+    /*
+     * FileReader dbPropReader = null; try { dbPropReader = new
+     * FileReader(HelperClass.dataDirectory + "Configuration.properties"); }
+     * catch (FileNotFoundException e) { e.printStackTrace(); }
+     */
     dbProperties = new Properties();
-    try {
-      dbProperties.load(dbPropReader);
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
+    /*
+     * try { dbProperties.load(dbPropReader); } catch (IOException ex) {
+     * ex.printStackTrace(); }
+     */
+    dbProperties.put("derby.driver", "org.apache.derby.jdbc.EmbeddedDriver");
+    dbProperties.put("derby.url", "jdbc:derby:");
+    dbProperties.put("db.schema", "APP");
     return dbProperties;
   }
 
@@ -726,16 +732,46 @@ public final class DBConnection {
         .getMainWindow());
     userdata.setUser(properties.getProperty("user", ""));
     userdata.setPassword(properties.getProperty("Password", ""));
-    if (! userdata.isCancelled()) {
-    } else {
+    properties.setProperty("user", userdata.getUser());
+    properties.setProperty("password", userdata.getPassword());
+    if (userdata.isCancelled()) {
       JOptionPane.showMessageDialog(HelperClass.getMainWindow(),
           "Synchronization was cancelled by User", "Error",
           JOptionPane.ERROR_MESSAGE);
       return;
     }
-    properties.setProperty("user", userdata.getUser());
-    properties.setProperty("password", userdata.getPassword());
     userdata = null;
+    URL url = null;
+    ;
+    URLConnection urlConn;
+    DataOutputStream out;
+    DataInputStream in;
+    try {
+      url = new URL("http://movie.offensand.com/");
+      urlConn = url.openConnection();
+      urlConn.setDoInput(true);
+      urlConn.setDoOutput(true);
+      urlConn.setUseCaches(false);
+      urlConn.setRequestProperty("Content-Type",
+          "application/x-www-form-urlencoded");
+      out = new DataOutputStream(urlConn.getOutputStream());
+      String content = "name=" + URLEncoder.encode("Buford Early", "UTF-8")
+          + "&email=" + URLEncoder.encode("buford@known-space.com", "UTF-8");
+      out.writeBytes(content);
+      out.flush();
+      out.close();
+      // Get response data.
+      in = new DataInputStream(urlConn.getInputStream());
+      String str;
+      while (null != ((str = in.readUTF() ) )) {
+        System.out.println(str);
+      }
+      in.close();
+    } catch (MalformedURLException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
     // TODO Philipp -- finish synchronization
   }
 }
